@@ -1,0 +1,8 @@
+{
+  "name": "weekly-pace",
+  "version": "0.1.0",
+  "description": "Шкала недельного лимита Claude над полем ввода: фактический расход против планового темпа (пунктир)",
+  "author": { "name": "kvartavlad" },
+  "license": "MIT",
+  "types": "./types/index.d.ts"
+}
