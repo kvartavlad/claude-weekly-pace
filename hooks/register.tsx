@@ -37,10 +37,29 @@ function weekBounds(now: number, limit: WeekLimit | null): { start: number; end:
 const clamp = (n: number) => Math.max(0, Math.min(100, n))
 const fmt = (n: number) => (Math.round(n * 10) / 10).toString()
 
+type Lang = 'ru' | 'en'
+const STRINGS = {
+  ru: { d: 'д', h: 'ч', m: 'м', plan: 'План', planLower: 'план', reset: 'сброс', cap: 'край шкалы' },
+  en: { d: 'd', h: 'h', m: 'm', plan: 'Plan', planLower: 'plan', reset: 'resets in', cap: 'bar end' },
+} as const
+let lang: Lang = 'en'
+
+/** Язык: настройка language Claude Code, иначе локаль системы; ru/uk/be — русский. */
+function pickLang(setting: unknown): Lang {
+  const s = typeof setting === 'string' ? setting.toLowerCase() : ''
+  if (s) return /^(ru|uk|be)|russian|русск|ukrain|україн|belarus/.test(s) ? 'ru' : 'en'
+  let loc = ''
+  try {
+    loc = Intl.DateTimeFormat().resolvedOptions().locale.toLowerCase()
+  } catch {}
+  return /^(ru|uk|be)/.test(loc) ? 'ru' : 'en'
+}
+
 function fmtLeft(ms: number): string {
+  const t = STRINGS[lang]
   const h = Math.floor(ms / 3_600_000)
   const d = Math.floor(h / 24)
-  return d > 0 ? `${d}д ${h % 24}ч` : `${h}ч ${Math.floor((ms % 3_600_000) / 60_000)}м`
+  return d > 0 ? `${d}${t.d} ${h % 24}${t.h}` : `${h}${t.h} ${Math.floor((ms % 3_600_000) / 60_000)}${t.m}`
 }
 
 const BAR_H = 16
@@ -95,6 +114,11 @@ function barText(plan: number, used: number | null, cells = 16): string {
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     const result = await next(e)
+    try {
+      lang = pickLang(await $.settings.read({ key: 'language' }))
+    } catch {
+      lang = pickLang(undefined)
+    }
     const usage = await $.session.usage()
     await update($, limitAtom, () => pickWeek(usage.rateLimits))
     const tick = async () => {
@@ -126,10 +150,11 @@ export const register: Register = on => {
     const used = limit ? limit.percentUsed : null
     const delta = used === null ? null : used - plan
 
+    const t = STRINGS[lang]
     const label =
       used === null
-        ? `План ${fmt(plan)}% · сброс ${fmtLeft(end - now)}`
-        : `${fmt(used)}% / план ${fmt(plan)}% (${delta! >= 0 ? "+" : ""}${fmt(delta!)}) · сброс ${fmtLeft(end - now)}`
+        ? `${t.plan} ${fmt(plan)}% · ${t.reset} ${fmtLeft(end - now)}`
+        : `${fmt(used)}% / ${t.planLower} ${fmt(plan)}% (${delta! >= 0 ? "+" : ""}${fmt(delta!)}) · ${t.reset} ${fmtLeft(end - now)}`
     const color = delta === null ? undefined : delta > 10 ? 'error' : delta > 0 ? 'warning' : 'success'
 
     if (e.surface === 'terminal') {
@@ -149,7 +174,7 @@ export const register: Register = on => {
           <Box flexShrink={0}>
             <Svg
               source={capSvg('left', used !== null && used > 0 ? fillColor(plan, used) : TRACK)}
-              alt="край шкалы"
+              alt={t.cap}
               width={CAP_W}
               height={BAR_H}
             />
@@ -160,7 +185,7 @@ export const register: Register = on => {
           <Box flexShrink={0}>
             <Svg
               source={capSvg('right', used !== null && used >= 100 ? fillColor(plan, used) : TRACK)}
-              alt="край шкалы"
+              alt={t.cap}
               width={CAP_W}
               height={BAR_H}
             />

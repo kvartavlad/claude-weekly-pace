@@ -9,6 +9,14 @@
 
 Работает в десктоп-приложении Claude (шкала растягивается на ширину поля ввода) и в терминале (текстовая полоска). Фактический процент появляется после первого ответа в сессии и только на подписке, где сервер сообщает недельный лимит.
 
+## Язык
+
+Подписи на русском или английском, выбираются автоматически: по настройке `language` Claude Code, а если её нет — по локали системы (ru/uk/be → русский, иначе английский).
+
+## English
+
+A weekly-limit bar above the Claude Code prompt: the fill is how much of the weekly (`seven_day`) limit is used, the dashed line is the planned pace (share of the week elapsed). Green — on or under pace, yellow — ahead, red — more than 10 points ahead. Labels switch to English automatically.
+
 ## Установка
 
 В терминальной сессии Claude Code:
